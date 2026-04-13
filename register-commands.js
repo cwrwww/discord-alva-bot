@@ -19,6 +19,10 @@ const commands = [
     .setName('gm')
     .setDescription('Get today\'s market vibe from Alva 🌅')
     .toJSON(),
+  new SlashCommandBuilder()
+    .setName('featured')
+    .setDescription('Show this week\'s featured Alva playbook 📊')
+    .toJSON(),
 ];
 
 const rest = new REST({ version: '10' }).setToken(token);
