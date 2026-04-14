@@ -208,10 +208,17 @@ function formatGM(data) {
                     : data.market === 'stock'  ? '📊 Stock'
                     : '🌐 Macro';
 
+  // Look up the signal's change from movers data
+  const allMovers = [...(data.usMovers || []), ...(data.cryptoMovers || [])];
+  const signalMover = allMovers.find(m => m.ticker === data.signal);
+  const signalDisplay = signalMover
+    ? `${emoji(signalMover.change)} **${data.signal}** ${fmt(signalMover.change)}`
+    : data.signal;
+
   return [
     `GM Alva fam 🌅 Today's market vibe: ${data.vibe}`,
     '',
-    `🔥 **Today's hottest signal (${marketLabel}):** ${data.signal}`,
+    `🔥 **Today's hottest signal (${marketLabel}):** ${signalDisplay}`,
     '',
     `**Indices:** ${idxLine}`,
     `**US Stocks:** ${stockLine}`,
