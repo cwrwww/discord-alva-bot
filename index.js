@@ -24,15 +24,15 @@ if (!DISCORD_TOKEN || !GM_CHANNEL_ID || !ALVA_API_KEY) {
 // Runs on Alva Cloud: scans crypto + US stocks + indices + news,
 // picks the single hottest signal, generates a punchy one-liner via LLM.
 const ALVA_SCRIPT = `(async () => {
-  const { getCryptoByMetricTimeRange } = require("@arrays/crypto/metrics-time-range-screener:v1.0.0");
-  const { getStockKline }              = require("@arrays/data/stock/spot/ohlcv:v1.0.0");
-  const { getSerperSearch }            = require("@arrays/data/search/serper-search:v1.0.0");
+  const { getCryptoKline }  = require("@arrays/crypto/ohlcv:v1.0.0");
+  const { getStockKline }   = require("@arrays/data/stock/spot/ohlcv:v1.0.0");
+  const { getSerperSearch } = require("@arrays/data/search/serper-search:v1.0.0");
   const adk = require("@alva/adk");
 
   const nowMs           = Date.now();
   const nowSec          = Math.floor(nowMs / 1000);
   const sevenDaysAgoSec = nowSec - 7 * 86400;  // 7 days to cover weekends + holidays
-  const twoDaysAgoMs    = nowMs  - 172800000;  // for crypto screener (ms)
+  const twoDaysAgoSec   = nowSec - 2 * 86400;
 
   // Date awareness for varied content
   const today = new Date();
@@ -41,11 +41,27 @@ const ALVA_SCRIPT = `(async () => {
   const dateStr = today.toISOString().slice(0, 10);
   const dayName = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"][dayOfWeek];
 
-  // 1. Crypto top 5 movers
-  const cryptoScreen = getCryptoByMetricTimeRange({ start_time: twoDaysAgoMs, end_time: nowMs, metric: "PRICE_CHANGE_1D" });
-  const cryptoMovers = cryptoScreen.response.data
-    .slice().sort((a, b) => Math.abs(b.value) - Math.abs(a.value)).slice(0, 10)
-    .map(d => ({ market: "crypto", ticker: d.ticker.replace("USDT",""), change: Number(d.value.toFixed(2)) }));
+  // 1. Crypto display data — OHLCV-based (screener data is unreliable)
+  const cryptoTickers = ["BTC","ETH","SOL","BNB","XRP","DOGE","ADA","AVAX","SUI","LINK"];
+  const cryptoMovers = [];
+  for (const ticker of cryptoTickers) {
+    try {
+      const raw = getCryptoKline({ symbol: ticker, start_time: twoDaysAgoSec, end_time: nowSec, interval: "1h" });
+      const bars = raw.response.data;
+      if (bars && bars.length >= 2) {
+        const sorted = bars.slice().sort((a, b) => a.date - b.date);
+        const latest = sorted[sorted.length - 1];
+        const target24h = latest.date - 86400000;
+        let closest = sorted[0];
+        for (const b of sorted) {
+          if (Math.abs(b.date - target24h) < Math.abs(closest.date - target24h)) closest = b;
+        }
+        const change = Number(((latest.close - closest.close) / closest.close * 100).toFixed(2));
+        cryptoMovers.push({ market: "crypto", ticker, change });
+      }
+    } catch (_) {}
+  }
+  cryptoMovers.sort((a, b) => Math.abs(b.change) - Math.abs(a.change));
 
   // 2. Top US mega-cap movers
   const usTickers = ["AAPL","MSFT","NVDA","AMZN","META","TSLA","GOOGL","JPM","LLY","AVGO"];
@@ -89,19 +105,19 @@ const ALVA_SCRIPT = `(async () => {
   const news = getSerperSearch({ q: "crypto stock market today", type: "news", tbs: "qdr:d", num: 6 });
   const headlines = (news.response.data || []).slice(0, 6).map(n => n.title);
 
-  // 5. ADK picks the single hottest signal across crypto + stocks
+  // 5. ADK picks the single hottest signal — US stocks only
   const weekendNote = isWeekend
-    ? "Note: US stock markets are CLOSED today (weekend). Stock data reflects last Friday's close. Focus more on crypto and news for fresh signals."
+    ? "Note: US stock markets are CLOSED today (weekend). Stock data reflects last Friday's close. Focus on macro narratives, upcoming catalysts, or news-driven angles."
     : "";
 
   const result = await adk.agent({
-    system: \`You are a witty market commentator for a finance Discord covering both crypto and US stocks.
+    system: \`You are a witty market commentator for a finance Discord focused on US stocks and macro.
 Today is \${dateStr} (\${dayName}). \${weekendNote}
-Given top movers and headlines, pick the ONE most explosive or interesting signal and write a punchy one-liner (max 20 words).
+Given US stock movers, indices, and headlines, pick the ONE most interesting US stock signal and write a punchy one-liner (max 20 words).
 IMPORTANT: Be creative and vary your angle — focus on different tickers, narratives, or themes each day. Don't repeat the same signal unless it's truly the biggest story.
-If stock data hasn't changed (weekend/holiday), lean into crypto momentum, macro narratives, or news-driven angles instead.
-Output JSON only, no markdown: {"signal":"<ticker or short topic>","market":"crypto|stock|macro","vibe":"<one sentence>"}\`,
-    prompt: JSON.stringify({ date: dateStr, dayOfWeek: dayName, isWeekend, cryptoTopMovers: cryptoMovers.slice(0,5), usStockTopMovers: usMovers.slice(0,5), indices, headlines }),
+On weekends/holidays, focus on macro narratives, sector trends, or upcoming catalysts instead of stale price data.
+Output JSON only, no markdown: {"signal":"<ticker or short topic>","market":"stock|macro","vibe":"<one sentence>"}\`,
+    prompt: JSON.stringify({ date: dateStr, dayOfWeek: dayName, isWeekend, usStockTopMovers: usMovers.slice(0,5), indices, headlines }),
     tools: [],
     maxTurns: 1,
   });
