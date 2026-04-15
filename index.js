@@ -227,7 +227,6 @@ function formatGM(data) {
     "What's your strategy today?",
     '',
     'Not on a plan yet? Start your free trial → [alva.ai](https://alva.ai/?utm_source=discord)',
-    'Plug Alva Skills into your Agent: [github.com/alva-ai/skills](https://github.com/alva-ai/skills)',
   ].join('\n');
 }
 
