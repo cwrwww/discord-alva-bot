@@ -549,6 +549,81 @@ client.on('interactionCreate', async (interaction) => {
         await interaction.editReply(`Failed to fetch playbook: ${err.message}`).catch(() => {});
       }
     }
+    // /rules — post rules/welcome content to the current channel
+    if (interaction.commandName === 'rules') {
+      await interaction.deferReply({ flags: [MessageFlags.Ephemeral] });
+      const channel = interaction.channel;
+
+      const blocks = [
+        // Block 1: Hero welcome
+        new EmbedBuilder()
+          .setColor(0x2a9b7d)
+          .setTitle('🚀 Welcome to Alva: The Quantamental Investing AI Lab')
+          .setDescription(
+            'Welcome to the future of smart investing. Alva is a collaborative platform where AI meets Alpha. ' +
+            'We are building the **GitHub for Investing** — a space to build, backtest, and remix quantamental playbooks with collective intelligence.'
+          )
+          .addFields({
+            name: '🎯 Our Mission: Alpha, Shared.',
+            value: 'We make smarter investing accessible to everyone. In Alva, individual research compounds into a **Shared Edge**.',
+          })
+          .setImage('https://alva.ai/og-image.png'),
+
+        // Block 2: Getting started
+        new EmbedBuilder()
+          .setColor(0x49a3a6)
+          .setTitle('⚡ Ideas In. Alpha Out.')
+          .setDescription(
+            'Turn your investment thesis into a live playbook in minutes — no code required.\n\n' +
+            '**Build & Deploy:** Visit [alva.ai](https://alva.ai) to start modeling, backtesting, and monitoring your strategies.'
+          ),
+
+        // Block 3: The Alva Way
+        new EmbedBuilder()
+          .setColor(0x49a3a6)
+          .setTitle('🔄 The Alva Way: Build, Remix, Compound')
+          .setDescription(
+            'This is a community of builders, not just watchers. We grow when you:\n\n' +
+            '🛠️ **Create** — Don\'t let your ideas sit idle. Build financial models and quant strategies on [alva.ai](https://alva.ai) and share them here.\n\n' +
+            '🌀 **Remix** — See a brilliant strategy? Hit Remix, tweak the logic or data sources, and evolve the edge.\n\n' +
+            '🌟 **Star** — Found a game-changing playbook? Support the creator with a Star and help the best ideas rise to the top.\n\n' +
+            '💡 **Explore** — Check <#1493128945216786593> for elite, Remix-ready examples of quantamental excellence.'
+          ),
+
+        // Block 4: Navigation
+        new EmbedBuilder()
+          .setColor(0x2a9b7d)
+          .setTitle('🗺️ Navigation Map')
+          .setDescription(
+            '**📢 announcements** — Platform milestones and community news\n' +
+            '**🆙 product-updates** — Technical changelogs, new AI nodes, and backtesting features\n' +
+            '**💎 <#1493128945216786593>** — Curated gallery of high-performance investing playbooks\n\n' +
+            '**💬 general** — High-level tech talk, market research, and quantamental networking\n' +
+            '**🌐 gm-gn** — Daily check-ins and community vibes\n' +
+            '**🛠 <#1493129095637241938>** — Bug reports, feature requests, and technical help'
+          ),
+
+        // Block 5: CTA
+        new EmbedBuilder()
+          .setColor(0x2a9b7d)
+          .setTitle('🧪 Ready to reimagine investing?')
+          .setDescription(
+            'The engine is live. Let\'s build the edge together.\n\n' +
+            '👉 **Enter the Lab:** [alva.ai](https://alva.ai)'
+          ),
+      ];
+
+      try {
+        for (const embed of blocks) {
+          await channel.send({ embeds: [embed] });
+        }
+        await interaction.editReply('Rules posted!');
+        console.log(`[Rules] Posted at ${new Date().toISOString()}`);
+      } catch (err) {
+        await interaction.editReply(`Failed to post rules: ${err.message}`).catch(() => {});
+      }
+    }
+
   } catch (err) {
     console.error('[Interaction] Failed:', err.message);
   }

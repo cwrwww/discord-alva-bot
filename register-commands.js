@@ -23,6 +23,10 @@ const commands = [
     .setName('featured')
     .setDescription('Show this week\'s featured Alva playbook 📊')
     .toJSON(),
+  new SlashCommandBuilder()
+    .setName('rules')
+    .setDescription('Post community rules & welcome guide to this channel 📜')
+    .toJSON(),
 ];
 
 const rest = new REST({ version: '10' }).setToken(token);
